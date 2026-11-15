@@ -4,7 +4,7 @@ An end-to-end machine learning project that predicts whether a telecom customer 
 
 **🔗 Live demo:** [your-app-name.streamlit.app](https://leave-or-stay.streamlit.app/) <!-- replace after deploying -->
 
-![App screenshot](assets/app_screenshot.png) <!-- add a screenshot of your app -->
+![App screenshot](assets/dashboard.jpg)
 
 ---
 
@@ -55,7 +55,7 @@ Acquiring a new customer costs far more than retaining an existing one. This pro
 ## 🚀 Run Locally
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
+git clone https://github.com/deepak-1401/Customer-Churn-Prediction-System-.git
 cd <your-repo>
 pip install -r requirements.txt
 
@@ -110,6 +110,6 @@ Python · pandas · scikit-learn · imbalanced-learn · XGBoost · Plotly · Str
 
 ## 👤 Author
 
-**Your Name** · [LinkedIn](https://linkedin.com/in/your-profile) · [GitHub](https://github.com/your-username)
+**Deepak.G** · [LinkedIn](https://www.linkedin.com/in/deepakg-) · [GitHub](https://github.com/deepak-1401)
 
 _Built during an internship project and extended into a deployed application._
