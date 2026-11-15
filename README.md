@@ -2,7 +2,7 @@
 
 An end-to-end machine learning project that predicts whether a telecom customer is likely to churn, explains **why**, and serves predictions through an interactive Streamlit web app.
 
-**🔗 Live demo:** [your-app-name.streamlit.app](https://your-app-name.streamlit.app) <!-- replace after deploying -->
+**🔗 Live demo:** [your-app-name.streamlit.app](https://leave-or-stay.streamlit.app/) <!-- replace after deploying -->
 
 ![App screenshot](assets/app_screenshot.png) <!-- add a screenshot of your app -->
 
@@ -27,12 +27,12 @@ Acquiring a new customer costs far more than retaining an existing one. This pro
 
 ## 🏆 Results
 
-| Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
-|---|---|---|---|---|---|
-| Gradient Boosting | 0.767 | 0.545 | 0.749 | 0.631 | 0.842 |
-| Random Forest | 0.769 | 0.549 | 0.727 | 0.626 | 0.843 |
-| XGBoost | 0.772 | 0.556 | 0.701 | 0.620 | 0.843 |
-| **Logistic Regression (deployed)** | 0.741 | 0.508 | **0.770** | 0.612 | 0.838 |
+| Model                              | Accuracy | Precision | Recall    | F1    | ROC-AUC |
+| ---------------------------------- | -------- | --------- | --------- | ----- | ------- |
+| Gradient Boosting                  | 0.767    | 0.545     | 0.749     | 0.631 | 0.842   |
+| Random Forest                      | 0.769    | 0.549     | 0.727     | 0.626 | 0.843   |
+| XGBoost                            | 0.772    | 0.556     | 0.701     | 0.620 | 0.843   |
+| **Logistic Regression (deployed)** | 0.741    | 0.508     | **0.770** | 0.612 | 0.838   |
 
 <p float="left">
   <img src="results/roc_curves.png" width="48%" />
@@ -112,4 +112,4 @@ Python · pandas · scikit-learn · imbalanced-learn · XGBoost · Plotly · Str
 
 **Your Name** · [LinkedIn](https://linkedin.com/in/your-profile) · [GitHub](https://github.com/your-username)
 
-*Built during an internship project and extended into a deployed application.*
+_Built during an internship project and extended into a deployed application._

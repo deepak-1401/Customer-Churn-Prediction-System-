@@ -50,6 +50,10 @@ st.markdown(
             border-left-color: #2ecc71;
             background-color: rgba(46,204,113,0.07);
         }
+        .strength {font-size: 0.8rem; opacity: 0.75;}
+        .bar {height: 6px; background: rgba(120,120,120,0.2); border-radius: 3px; margin-top: 6px;}
+        .bar .fill {height: 6px; border-radius: 3px; background: #e74c3c;}
+        .driver-card.safe .fill {background: #2ecc71;}
         footer {visibility: hidden;}
     </style>
     """,
@@ -182,28 +186,86 @@ def build_feature_row() -> pd.DataFrame:
     return encoded
 
 
-def pretty_name(col: str) -> str:
-    """'Contract_Month-to-month' -> 'Contract: Month-to-month' etc."""
-    names = {
-        "tenure": "Short Tenure",
-        "MonthlyCharges": "High Monthly Charges",
-        "TotalCharges": "Total Charges",
-        "SeniorCitizen": "Senior Citizen",
+# Plain-English names for each categorical question
+FRIENDLY_GROUPS = {
+    "gender": "Gender", "Partner": "Has partner", "Dependents": "Has dependents",
+    "PhoneService": "Phone service", "MultipleLines": "Multiple lines",
+    "InternetService": "Internet service", "OnlineSecurity": "Online security",
+    "OnlineBackup": "Online backup", "DeviceProtection": "Device protection",
+    "TechSupport": "Tech support", "StreamingTV": "Streaming TV",
+    "StreamingMovies": "Streaming movies", "Contract": "Contract",
+    "PaperlessBilling": "Paperless billing", "PaymentMethod": "Payment method",
+}
+MIN_EFFECT = 0.05   # factors weaker than this are hidden (they barely move the result)
+
+
+def compute_factor_effects(x: pd.DataFrame):
+    """
+    Explain ONE prediction in plain English (valid for a linear model).
+    Each factor gets an 'effect' on the customer's churn risk compared with an
+    average customer. Positive = raises risk, negative = lowers risk.
+
+    - Numeric features: coefficient x scaled value (scaled value 0 = average customer)
+    - Categorical features: the chosen option's coefficient minus the average over
+      all options of that question. (Because one option per question is dropped
+      during training, this lets e.g. 'Month-to-month' show up properly.)
+    """
+    coefs = pd.Series(model.coef_[0], index=x.columns)
+    scaled = x.iloc[0]
+    effects = []   # list of (label, effect)
+
+    # ---- numeric factors (direction decided by the customer's actual value) ----
+    if "tenure" in coefs.index:
+        # Tenure and total charges move together (long-time customers have paid more),
+        # so their effects are combined into ONE easy-to-read "customer history" factor.
+        history = coefs["tenure"] * scaled["tenure"]
+        if "TotalCharges" in coefs.index:
+            history += coefs["TotalCharges"] * scaled["TotalCharges"]
+        word = "Short" if scaled["tenure"] < 0 else "Long"
+        effects.append((f"{word} tenure ({tenure} months)", history))
+    if "MonthlyCharges" in coefs.index:
+        word = "Higher" if scaled["MonthlyCharges"] > 0 else "Lower"
+        effects.append((f"{word}-than-average monthly bill (${monthly:,.0f})",
+                        coefs["MonthlyCharges"] * scaled["MonthlyCharges"]))
+    if "SeniorCitizen" in coefs.index and senior == "Yes":
+        effects.append(("Senior citizen", coefs["SeniorCitizen"]))
+
+    # ---- categorical factors ----
+    selections = {
+        "gender": gender, "Partner": partner, "Dependents": dependents,
+        "PhoneService": phone, "MultipleLines": multiple, "InternetService": internet,
+        "OnlineSecurity": security, "OnlineBackup": backup, "DeviceProtection": protection,
+        "TechSupport": support, "StreamingTV": tv, "StreamingMovies": movies,
+        "Contract": contract, "PaperlessBilling": paperless, "PaymentMethod": payment,
     }
-    if col in names:
-        return names[col]
-    return col.replace("_", ": ", 1)
+    for group, value in selections.items():
+        group_cols = [c for c in coefs.index if c.startswith(group + "_")]
+        if not group_cols:
+            continue
+        chosen = coefs.get(f"{group}_{value}", 0.0)           # 0 = the dropped baseline option
+        average = coefs[group_cols].sum() / (len(group_cols) + 1)
+        effects.append((f"{FRIENDLY_GROUPS[group]}: {value}", chosen - average))
+
+    return effects
 
 
-def top_risk_drivers(x: pd.DataFrame, n: int = 3):
-    """
-    Per-customer explanation for a linear model.
-    contribution_i = coefficient_i * (scaled) feature value_i
-    Positive contribution => pushes towards churn.
-    """
-    coefs = model.coef_[0]
-    contrib = pd.Series(coefs * x.iloc[0].values, index=x.columns)
-    return contrib.sort_values(ascending=False).head(n), contrib.sort_values().head(n)
+def strength_of(effect: float):
+    """Turn a number into words and a bar width a non-technical user can read."""
+    size = abs(effect)
+    if size >= 0.40:
+        return "Strong influence", 100
+    if size >= 0.15:
+        return "Moderate influence", 60
+    return "Slight influence", 30
+
+
+def driver_card(label: str, effect: float, safe: bool) -> str:
+    """HTML card: factor name + influence label + small bar."""
+    text, width = strength_of(effect)
+    css = "driver-card safe" if safe else "driver-card"
+    return (f'<div class="{css}"><b>{label}</b><br>'
+            f'<span class="strength">{text}</span>'
+            f'<div class="bar"><div class="fill" style="width:{width}%"></div></div></div>')
 
 
 # ----------------------------------------------------------------------------
@@ -289,28 +351,38 @@ with right:
 st.divider()
 
 # ---- Business insights: top 3 drivers ---------------------------------------
-st.subheader("🔎 Top 3 Features Driving This Customer's Risk")
+st.subheader("🔎 Why This Prediction? Top Factors")
 
 if hasattr(model, "coef_"):
-    risk_up, risk_down = top_risk_drivers(X)
+    effects = [(lbl, e) for lbl, e in compute_factor_effects(X) if abs(e) >= MIN_EFFECT]
+    risk_up = sorted([t for t in effects if t[1] > 0], key=lambda t: -t[1])[:3]
+    risk_down = sorted([t for t in effects if t[1] < 0], key=lambda t: t[1])[:3]
+
+    # One-sentence summary in plain English
+    if risk_up:
+        reasons = "; ".join(lbl.lower() for lbl, _ in risk_up)
+        st.markdown(f"**In short:** this customer's risk is mainly pushed up by {reasons}.")
+    else:
+        st.markdown("**In short:** no single factor stands out as raising this customer's risk.")
 
     c_up, c_down = st.columns(2)
     with c_up:
-        st.markdown("**Factors increasing churn risk**")
-        for feat, val in risk_up.items():
-            st.markdown(
-                f'<div class="driver-card"><b>{pretty_name(feat)}</b><br>'
-                f'<small>Impact on log-odds: +{val:.2f}</small></div>',
-                unsafe_allow_html=True)
+        st.markdown("**⬆️ Raising the risk of leaving**")
+        if risk_up:
+            for lbl, e in risk_up:
+                st.markdown(driver_card(lbl, e, safe=False), unsafe_allow_html=True)
+        else:
+            st.caption("None of the factors raise the risk noticeably.")
     with c_down:
-        st.markdown("**Factors protecting against churn**")
-        for feat, val in risk_down.items():
-            st.markdown(
-                f'<div class="driver-card safe"><b>{pretty_name(feat)}</b><br>'
-                f'<small>Impact on log-odds: {val:.2f}</small></div>',
-                unsafe_allow_html=True)
-    st.caption("Impact = model coefficient x the customer's (scaled) feature value, "
-               "computed directly from the Logistic Regression model.")
+        st.markdown("**⬇️ Helping keep the customer**")
+        if risk_down:
+            for lbl, e in risk_down:
+                st.markdown(driver_card(lbl, e, safe=True), unsafe_allow_html=True)
+        else:
+            st.caption("None of the factors protect against leaving noticeably.")
+
+    st.caption("Each bar shows how strongly a factor pushes this customer's risk up or down "
+               "compared with an average customer, based on what the model learned from past data.")
 else:
     # Generic fallback if a non-linear model is loaded
     st.markdown("- 📆 **Short tenure**: newer customers churn more\n"
