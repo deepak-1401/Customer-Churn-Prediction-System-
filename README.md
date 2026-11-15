@@ -2,7 +2,7 @@
 
 An end-to-end machine learning project that predicts whether a telecom customer is likely to churn, explains **why**, and serves predictions through an interactive Streamlit web app.
 
-**🔗 Live demo:** [your-app-name.streamlit.app](https://leave-or-stay.streamlit.app/) <!-- replace after deploying -->
+**🔗 Live demo:** (https://leave-or-stay.streamlit.app/) 
 
 ![App screenshot](assets/dashboard.jpg)
 
