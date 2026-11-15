@@ -3,7 +3,7 @@ Customer Churn Prediction System - Streamlit App
 =================================================
 Run with:   streamlit run app.py
 Requires:   streamlit, pandas, numpy, scikit-learn, plotly, joblib
-Files expected in the same folder:
+Files expected in the models/ folder:
     model.pkl   -> trained Logistic Regression (best F1 = 63.4%)
     scaler.pkl  -> StandardScaler fitted on [tenure, MonthlyCharges, TotalCharges]
 Optional:
@@ -11,12 +11,12 @@ Optional:
                    (only needed if your model has no `feature_names_in_`)
 """
 
-import os
 import joblib
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from pathlib import Path
 
 # ----------------------------------------------------------------------------
 # 1. PAGE CONFIG + CUSTOM CSS
@@ -56,6 +56,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+BASE_DIR = Path(__file__).resolve().parent      # folder containing app.py
+MODEL_DIR = BASE_DIR / "models"                 # saved model artifacts live here
+
 # ----------------------------------------------------------------------------
 # 2. CONFIGURATION  (edit these if your training column names differ)
 # ----------------------------------------------------------------------------
@@ -69,14 +72,14 @@ RISK_THRESHOLD = 0.50  # probability above which a customer is flagged "High Ris
 @st.cache_resource
 def load_artifacts():
     """Load model, scaler and (optionally) the training column list."""
-    model = joblib.load("model.pkl")
-    scaler = joblib.load("scaler.pkl")
+    model = joblib.load(MODEL_DIR / "model.pkl")
+    scaler = joblib.load(MODEL_DIR / "scaler.pkl")
 
     # Work out the exact column order the model was trained on.
     if hasattr(model, "feature_names_in_"):          # set when trained on a DataFrame
         columns = list(model.feature_names_in_)
-    elif os.path.exists("columns.pkl"):              # fallback: a saved list of columns
-        columns = list(joblib.load("columns.pkl"))
+    elif (MODEL_DIR / "columns.pkl").exists():              # fallback: a saved list of columns
+        columns = list(joblib.load(MODEL_DIR / "columns.pkl"))
     else:
         columns = None
     return model, scaler, columns
@@ -86,7 +89,7 @@ try:
     model, scaler, TRAIN_COLUMNS = load_artifacts()
 except FileNotFoundError as e:
     st.error(f"Could not find a required file: **{e.filename}**. "
-             "Place `model.pkl` and `scaler.pkl` in the same folder as `app.py`.")
+             "Place `model.pkl` and `scaler.pkl` in the `models/` folder next to `app.py`.")
     st.stop()
 
 # ----------------------------------------------------------------------------
@@ -107,9 +110,9 @@ with st.sidebar.form("customer_form"):
             ["Electronic check", "Mailed check",
              "Bank transfer (automatic)", "Credit card (automatic)"],
         )
-        monthly = st.number_input("Monthly Charges (₹)", 0.0, 200.0, 70.0, step=0.5)
+        monthly = st.number_input("Monthly Charges ($)", 0.0, 200.0, 70.0, step=0.5)
         total = st.number_input(
-            "Total Charges (₹)", 0.0, 10000.0,
+            "Total Charges ($)", 0.0, 10000.0,
             float(round(tenure * monthly, 2)), step=10.0,
             help="Defaults to tenure x monthly charges; overwrite if you know the real figure.",
         )

@@ -60,27 +60,33 @@ cd <your-repo>
 pip install -r requirements.txt
 
 # (Optional) retrain the model and regenerate model.pkl, scaler.pkl, columns.pkl
-python train_model.py
+python src/train_model.py
 
 # (Optional) reproduce the model comparison and charts
-python compare_models.py
+python src/compare_models.py
 
 # Launch the app
 streamlit run app.py
 ```
 
-> The dataset CSV (`WA_Fn-UseC_-Telco-Customer-Churn.csv`) is only needed for retraining. Download it from Kaggle and place it in the project root.
+> The dataset CSV (`WA_Fn-UseC_-Telco-Customer-Churn.csv`) is only needed for retraining. Download it from Kaggle and place it in the `data/` folder.
 
 ## 📁 Project Structure
 
 ```
-├── app.py                  # Streamlit application
-├── train_model.py          # Trains Logistic Regression and exports artifacts
-├── compare_models.py       # Compares 4 models, saves metrics and plots
-├── model.pkl               # Trained Logistic Regression
-├── scaler.pkl              # Fitted StandardScaler
-├── columns.pkl             # Training feature columns (exact order)
+churn-prediction-app/
+├── app.py                  # Streamlit application (entry point)
 ├── requirements.txt
+├── README.md
+├── .gitignore
+├── src/
+│   ├── train_model.py      # Trains Logistic Regression, exports artifacts
+│   └── compare_models.py   # Compares 4 models, saves metrics and plots
+├── models/
+│   ├── model.pkl           # Trained Logistic Regression
+│   ├── scaler.pkl          # Fitted StandardScaler
+│   └── columns.pkl         # Training feature columns (exact order)
+├── data/                   # Telco CSV goes here (see data/README.md)
 ├── results/                # Comparison table and evaluation charts
 └── assets/                 # App screenshot
 ```
